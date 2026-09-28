@@ -88,18 +88,6 @@ RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
     SQLAlchemy \
     alembic
 
-# 4. 预缓存常用 Go SDK (如无需 Go 可删除本段以减小体积)
-WORKDIR /go/cache-prep
-RUN go mod init prep && \
-    go get github.com/redis/go-redis/v9 && \
-    go get github.com/rabbitmq/amqp091-go && \
-    go get github.com/segmentio/kafka-go && \
-    go get github.com/confluentinc/confluent-kafka-go/v2/kafka && \
-    go get github.com/jackc/pgx/v5 && \
-    go get github.com/go-sql-driver/mysql && \
-    go get gorm.io/gorm && \
-    rm -rf /go/cache-prep
-
 # 5. 工作目录配置
 WORKDIR /workspace
 

@@ -1,14 +1,10 @@
-name: Build and Export Offline Docker Image
+name: Build Full Dev Image
 
 on:
   workflow_dispatch:
     inputs:
-      image_name:
-        description: '镜像名称'
-        required: true
-        default: 'my-app'
       image_tag:
-        description: '镜像版本标签'
+        description: '镜像版本标签 (如 v1.0 / latest)'
         required: true
         default: 'latest'
   push:
@@ -26,31 +22,30 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 设置 Docker Buildx (支持高效缓存与多架构构建)
+      - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: 构建 Docker 镜像
         run: |
           IMAGE_TAG="${{ github.event.inputs.image_tag || 'latest' }}"
-          IMAGE_NAME="${{ github.event.inputs.image_name || 'my-app' }}"
+          IMAGE_NAME="full-dev-env"
           FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
 
-          echo "正在构建镜像: ${FULL_IMAGE} ..."
+          echo "正在构建集成开发镜像: ${FULL_IMAGE} ..."
           docker build -t ${FULL_IMAGE} .
 
           echo "IMAGE_FULL_TAG=${FULL_IMAGE}" >> $GITHUB_ENV
           echo "IMAGE_FILE_BASE=${IMAGE_NAME}-${IMAGE_TAG}" >> $GITHUB_ENV
 
-      - name: 导出并压缩 Docker 镜像
+      - name: 导出并高效压缩镜像文件
         run: |
-          echo "正在保存并压缩镜像..."
-          # docker save 配合 gzip 压缩，可大幅减小上传和下载体积
-          docker save ${{ env.IMAGE_FULL_TAG }} | gzip > ${{ env.IMAGE_FILE_BASE }}.tar.gz
+          echo "正在将镜像导出并进行 gzip 压缩..."
+          docker save ${{ env.IMAGE_FULL_TAG }} | gzip -9 > ${{ env.IMAGE_FILE_BASE }}.tar.gz
           ls -lh ${{ env.IMAGE_FILE_BASE }}.tar.gz
 
-      - name: 上传镜像产物 (Artifact)
+      - name: 上传离线镜像产物 (Artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.IMAGE_FILE_BASE }}-offline-image
+          name: ${{ env.IMAGE_FILE_BASE }}-offline-bundle
           path: ${{ env.IMAGE_FILE_BASE }}.tar.gz
           retention-days: 7
